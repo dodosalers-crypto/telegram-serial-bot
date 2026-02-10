@@ -17,7 +17,7 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # serial missing or wrong format
+    # ❌ wrong format
     if len(context.args) != 1:
         await update.message.reply_text(
             "❌ *Wrong format*\n\n"
@@ -43,6 +43,14 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         data = r.json()
 
+        # ✅ NEW
+        if data.get("success") is True and data.get("message") == "ALREADY REGISTERED":
+            await update.message.reply_text(
+                f"⚠️ *Serial already registered*\n\n`{serial}`",
+                parse_mode="Markdown"
+            )
+            return
+
         if data.get("success"):
             await update.message.reply_text(
                 f"✅ *Serial Registered Successfully*\n\n`{serial}`",
@@ -50,11 +58,12 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         else:
             await update.message.reply_text(
-                f"⚠️ {data.get('error', 'Already Registered')}"
+                "❌ Registration failed"
             )
 
     except Exception:
         await update.message.reply_text("❌ Server error, try again later")
+
 
 # -------- GUIDE FOR WRONG COMMANDS --------
 async def guide_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
