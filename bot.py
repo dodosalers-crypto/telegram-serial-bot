@@ -3,28 +3,35 @@ from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filte
 import requests
 
 BOT_TOKEN = "8097482357:AAHiX0sfa35AyVISPHlC9Xxa1CZlxAhYKjI"
-WORKER_API = "https://toolserver.dodosalers.workers.dev/api/register"
+API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
 
-async def handle_serial(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    serial = update.message.text.strip()
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+
+    if len(text) < 5:
+        await update.message.reply_text("❌ Invalid serial")
+        return
 
     try:
         r = requests.post(
-            WORKER_API,
-            json={"serial": serial},
+            API_URL,
+            json={"serial": text},
             timeout=10
         )
+        data = r.json()
 
-        if r.status_code == 200 and r.json().get("success"):
-            await update.message.reply_text(f"✅ SERIAL REGISTERED\n\n{serial}")
+        if data.get("success"):
+            await update.message.reply_text(f"✅ SERIAL REGISTERED\n\n{text}")
         else:
-            await update.message.reply_text("❌ FAILED TO REGISTER")
+            await update.message.reply_text(f"⚠️ {data.get('error','FAILED')}")
 
-    except:
-        await update.message.reply_text("❌ SERVER ERROR")
+    except Exception as e:
+        await update.message.reply_text("❌ Server error")
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_serial))
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.run_polling()
 
-print("🤖 Bot Running...")
-app.run_polling()
+if __name__ == "__main__":
+    main()
