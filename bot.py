@@ -5,11 +5,19 @@ import requests
 BOT_TOKEN = "8097482357:AAHiX0sfa35AyVISPHlC9Xxa1CZlxAhYKjI"
 API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
 
-# -------- /register COMMAND --------
 async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
 
-    # serial missing
+    # ❌ block private chat
+    if chat.type == "private":
+        await update.message.reply_text(
+            "❌ *Registration not allowed in private chat*\n\n"
+            "✅ Please use this command inside the official group.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # serial missing or wrong format
     if len(context.args) != 1:
         await update.message.reply_text(
             "❌ *Wrong format*\n\n"
@@ -23,7 +31,6 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     serial = context.args[0].strip()
 
-    # basic validation
     if len(serial) < 5:
         await update.message.reply_text("❌ Invalid serial format")
         return
@@ -38,7 +45,7 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if data.get("success"):
             await update.message.reply_text(
-                f"✅ *SSTEAM A5 SUCCESSFULLY REGISTERED*\n\n`{serial}`",
+                f"✅ *Serial Registered Successfully*\n\n`{serial}`",
                 parse_mode="Markdown"
             )
         else:
