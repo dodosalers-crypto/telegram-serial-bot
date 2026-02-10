@@ -38,7 +38,7 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if data.get("success"):
             await update.message.reply_text(
-                f"✅ *Serial Registered Successfully*\n\n`{serial}`",
+                f"✅ *SSTEAM A5 SUCCESSFULLY REGISTERED*\n\n`{serial}`",
                 parse_mode="Markdown"
             )
         else:
