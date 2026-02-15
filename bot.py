@@ -1,96 +1,92 @@
-export default {
-  async fetch(request, env) {
+import requests
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, ContextTypes, filters
 
-    const url = new URL(request.url);
+BOT_TOKEN = "YOUR_BOT_TOKEN"
+API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
 
-    // 🔒 SWITCH — change to true to enable registration
-    const REGISTRATION_ENABLED = false;
+ADMIN_ID = 123456789  # apna numeric telegram id
 
-    /* ================= API REGISTER ================= */
-    if (url.pathname === "/api/register") {
+# 🔹 Check if user approved
+def is_user_approved(user_id):
+    r = requests.get(
+        "https://toolserver.dodosalers.workers.dev/api/check_user",
+        params={"id": user_id},
+        timeout=10
+    )
+    try:
+        return r.json().get("approved", False)
+    except:
+        return False
 
-      // 🔴 If disabled
-      if (!REGISTRATION_ENABLED) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: "API DOWN"
-          }),
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
+# 🔹 Approve command
+async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
 
-      try {
-        const body = await request.json();
-        const serial = body.serial?.trim();
+    if len(context.args) != 1:
+        await update.message.reply_text("Use: /approve USER_ID")
+        return
 
-        if (!serial) {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              message: "NO SERIAL"
-            }),
-            { headers: { "Content-Type": "application/json" } }
-          );
-        }
+    user_id = context.args[0]
 
-        // check if already exists
-        const exists = await env.LICENSE_DB.get(serial);
+    requests.post(
+        "https://toolserver.dodosalers.workers.dev/api/approve_user",
+        json={"id": user_id}
+    )
 
-        if (exists) {
-          return new Response(
-            JSON.stringify({
-              success: true,
-              message: "ALREADY REGISTERED"
-            }),
-            { headers: { "Content-Type": "application/json" } }
-          );
-        }
+    await update.message.reply_text(f"✅ User {user_id} Approved")
 
-        // save serial with value 1
-        await env.LICENSE_DB.put(serial, "1");
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: "REGISTERED"
-          }),
-          { headers: { "Content-Type": "application/json" } }
-        );
+# 🔹 Auto Serial Detect
+async def auto_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-      } catch (e) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: "ERROR"
-          }),
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
-    }
+    if update.effective_chat.type == "private":
+        return
 
-    /* ================= API CHECK (Tool ke liye) ================= */
-    if (url.pathname === "/api/check") {
+    user_id = update.effective_user.id
+    text = update.message.text.strip()
 
-      const serial = url.searchParams.get("serial");
+    if len(text) < 5 or " " in text:
+        return
 
-      if (!serial) {
-        return new Response(
-          JSON.stringify({ registered: false }),
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
+    # Check approval
+    if not is_user_approved(user_id):
+        await update.message.reply_text(
+            "⏳ Waiting for admin approval.\n"
+            f"Your ID: {user_id}"
+        )
+        return
 
-      const exists = await env.LICENSE_DB.get(serial);
+    # Register serial
+    try:
+        r = requests.post(API_URL, json={"serial": text}, timeout=10)
+        data = r.json()
 
-      return new Response(
-        JSON.stringify({
-          registered: exists ? true : false
-        }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
+        if data.get("message") == "ALREADY REGISTERED":
+            await update.message.reply_text("⚠️ Already Registered")
+            return
 
-    return new Response("API RUNNING");
-  }
-};
+        if data.get("success"):
+            await update.message.reply_text("✅ Registered Successfully")
+
+            # Admin log
+            await context.bot.send_message(
+                ADMIN_ID,
+                f"📝 New Registration\n\n"
+                f"Serial: {text}\n"
+                f"User ID: {user_id}"
+            )
+        else:
+            await update.message.reply_text("❌ Failed")
+
+    except:
+        await update.message.reply_text("❌ Server Error")
+
+
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+app.add_handler(CommandHandler("approve", approve))
+app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), auto_register))
+
+app.run_polling()
