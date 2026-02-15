@@ -5,65 +5,8 @@ import requests
 BOT_TOKEN = "8097482357:AAHiX0sfa35AyVISPHlC9Xxa1CZlxAhYKjI"
 API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
 
-async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-
-    # ❌ block private chat
-    if chat.type == "private":
-        await update.message.reply_text(
-            "❌ *Registration not allowed in private chat*\n\n"
-            "✅ Please use this command inside the official group.",
-            parse_mode="Markdown"
-        )
-        return
-
-    # ❌ wrong format
-    if len(context.args) != 1:
-        await update.message.reply_text(
-            "❌ *Wrong format*\n\n"
-            "✅ Use:\n"
-            "`/register SERIALNUMBER`\n\n"
-            "Example:\n"
-            "`/register C39X69ZAKPHF`",
-            parse_mode="Markdown"
-        )
-        return
-
-    serial = context.args[0].strip()
-
-    if len(serial) < 5:
-        await update.message.reply_text("❌ Invalid serial format")
-        return
-
-    try:
-        r = requests.post(
-            API_URL,
-            json={"serial": serial},
-            timeout=10
-        )
-        data = r.json()
-
-        # ✅ NEW
-        if data.get("success") is True and data.get("message") == "ALREADY REGISTERED":
-            await update.message.reply_text(
-                f"⚠️ *Serial already registered*\n\n`{serial}`",
-                parse_mode="Markdown"
-            )
-            return
-
-        if data.get("success"):
-            await update.message.reply_text(
-                f"✅ *Serial Registered Successfully*\n\n`{serial}`",
-                parse_mode="Markdown"
-            )
-        else:
-            await update.message.reply_text(
-                "❌ Registration failed"
-            )
-
-    except Exception:
-        await update.message.reply_text("❌ Server error, try again later")
-
+async def register(update, context):
+    await update.message.reply_text("🚫 API DOWN. Registration temporarily disabled.")
 
 # -------- GUIDE FOR WRONG COMMANDS --------
 async def guide_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
