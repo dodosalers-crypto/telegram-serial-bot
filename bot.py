@@ -2,10 +2,10 @@ import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, ContextTypes, filters
 
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+BOT_TOKEN = "8372696690:AAH9KM2gDUlRiDeHo8QVt9S_jO5QSUeshLE"
 API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
 
-ADMIN_ID = 123456789  # apna numeric telegram id
+ADMIN_ID = 6374332180  # apna numeric telegram id
 
 # 🔹 Check if user approved
 def is_user_approved(user_id):
