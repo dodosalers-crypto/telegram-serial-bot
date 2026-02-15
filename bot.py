@@ -1,37 +1,96 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import requests
+export default {
+  async fetch(request, env) {
 
-BOT_TOKEN = "8097482357:AAHiX0sfa35AyVISPHlC9Xxa1CZlxAhYKjI"
-API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
+    const url = new URL(request.url);
 
-async def register(update, context):
-    await update.message.reply_text("🚫 API DOWN. Registration temporarily disabled.")
+    // 🔒 SWITCH — change to true to enable registration
+    const REGISTRATION_ENABLED = false;
 
-# -------- GUIDE FOR WRONG COMMANDS --------
-async def guide_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
+    /* ================= API REGISTER ================= */
+    if (url.pathname === "/api/register") {
 
-    if text.startswith("/regis") or text.startswith("/register"):
-        await update.message.reply_text(
-            "❌ *Wrong format*\n\n"
-            "✅ Correct usage:\n"
-            "`/register SERIALNUMBER`\n\n"
-            "Example:\n"
-            "`/register C39X69ZAKPHF`",
-            parse_mode="Markdown"
-        )
+      // 🔴 If disabled
+      if (!REGISTRATION_ENABLED) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "API DOWN"
+          }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
 
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+      try {
+        const body = await request.json();
+        const serial = body.serial?.trim();
 
-    # command
-    app.add_handler(CommandHandler("register", register_cmd))
+        if (!serial) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "NO SERIAL"
+            }),
+            { headers: { "Content-Type": "application/json" } }
+          );
+        }
 
-    # wrong format / help
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guide_message))
+        // check if already exists
+        const exists = await env.LICENSE_DB.get(serial);
 
-    app.run_polling()
+        if (exists) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "ALREADY REGISTERED"
+            }),
+            { headers: { "Content-Type": "application/json" } }
+          );
+        }
 
-if __name__ == "__main__":
-    main()
+        // save serial with value 1
+        await env.LICENSE_DB.put(serial, "1");
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "REGISTERED"
+          }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+
+      } catch (e) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "ERROR"
+          }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    /* ================= API CHECK (Tool ke liye) ================= */
+    if (url.pathname === "/api/check") {
+
+      const serial = url.searchParams.get("serial");
+
+      if (!serial) {
+        return new Response(
+          JSON.stringify({ registered: false }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const exists = await env.LICENSE_DB.get(serial);
+
+      return new Response(
+        JSON.stringify({
+          registered: exists ? true : false
+        }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response("API RUNNING");
+  }
+};
