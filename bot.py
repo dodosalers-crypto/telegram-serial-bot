@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 
 BOT_TOKEN = os.getenv("7638202361:AAHHflFyE1MxGnDp_T8XduCYc53UqLLdyag")
-API_URL = "https://toolserver.dodosalers.workers.dev/api/register"
+API_URL = "https://serial-register-api.yourname.workers.dev/api/register"
 
 async def handle_serial(update: Update, context: ContextTypes.DEFAULT_TYPE):
     serial = update.message.text.strip()
