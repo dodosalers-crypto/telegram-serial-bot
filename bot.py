@@ -1,13 +1,13 @@
 import os
-import requests
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder
 
-BOT_TOKEN = os.getenv("7638202361:AAHHflFyE1MxGnDp_T8XduCYc53UqLLdyag")
-API_URL = "https://serial-register-api.yourname.workers.dev/api/register"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-async def handle_serial(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    serial = update.message.text.strip()
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN not found in environment variables")
+
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+
 
     # Basic length check
     if len(serial) < 5:
